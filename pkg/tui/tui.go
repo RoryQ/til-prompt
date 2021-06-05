@@ -104,15 +104,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// If so, exit.
 			if s == "enter" && m.saveFocused() {
 				e := markdown.Entry{
-					SavePath:   m.generateFilename(),
-					Title:      m.inputs[titleInput].Value(),
-					Body:       m.inputs[bodyInput].Value(),
-					Category:   m.inputs[categoryInput].Value(),
-					DateString: today,
+					Title:    m.inputs[titleInput].Value(),
+					Body:     m.inputs[bodyInput].Value(),
+					Category: m.inputs[categoryInput].Value(),
 				}
+				if (markdown.Entry{}) != e {
+					e.SavePath = m.generateFilename()
+					e.DateString = today
 
-				e.Save(m.config.SaveDirectory)
-				e.UpdateReadme(m.config.SaveDirectory)
+					e.Save(m.config.SaveDirectory)
+					e.UpdateReadme(m.config.SaveDirectory)
+				}
 
 				return m, tea.Quit
 			}
