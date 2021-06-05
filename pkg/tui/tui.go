@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/roryq/til-prompt/pkg/markdown"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -18,20 +20,32 @@ type Model struct {
 	cursorMode textinput.CursorMode
 
 	config Config
+
+	existingCategories []string
 }
 
 var (
 	today = time.Now().Format("2006-01-02")
 
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575"))
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle.Copy()
-	noStyle             = lipgloss.NewStyle()
-	helpStyle           = blurredStyle.Copy()
-	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575"))
+	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	cursorStyle  = focusedStyle.Copy()
+	noStyle      = lipgloss.NewStyle()
+
+	// text highlight and low
+	textLowStyle  = blurredStyle.Copy()
+	textHighStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
 	focusedSave   = focusedButton("Save")
 	unfocusedSave = blurredButton("Save")
+)
+
+type inputType int
+
+const (
+	titleInput    inputType = 0
+	bodyInput     inputType = 1
+	categoryInput inputType = 2
 )
 
 func focusedButton(name string) string {
@@ -44,8 +58,9 @@ func blurredButton(name string) string {
 
 func NewUI(config Config) Model {
 	m := Model{
-		inputs: make([]textinput.Model, 3),
-		config: config,
+		inputs:             make([]textinput.Model, 3),
+		config:             config,
+		existingCategories: config.ListCategoryDirectories(),
 	}
 
 	var t textinput.Model
@@ -88,6 +103,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Did the user press enter while the submit button was focused?
 			// If so, exit.
 			if s == "enter" && m.saveFocused() {
+				_ = markdown.Entry{
+					SavePath:   m.generateFilename(),
+					Title:      m.inputs[titleInput].Value(),
+					Body:       m.inputs[bodyInput].Value(),
+					Category:   m.inputs[categoryInput].Value(),
+					DateString: today,
+				}
+
+				markdown.RenderReadme(m.config.SaveDirectory)
+
 				return m, tea.Quit
 			}
 
@@ -133,6 +158,10 @@ func (m Model) saveFocused() bool {
 	return m.focusIndex == len(m.inputs)
 }
 
+func (m Model) inputFocused(i inputType) bool {
+	return m.inputs[i].Focused()
+}
+
 func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
 	var cmds = make([]tea.Cmd, len(m.inputs))
 
@@ -170,9 +199,19 @@ func formatDirectory(s string) string {
 }
 
 func (m Model) renderFooter(b *strings.Builder) {
-	b.WriteString(helpStyle.Render("your til will be saved to "))
+	if len(m.existingCategories) > 0 {
+		b.WriteString(textLowStyle.Render("existing categories are: "))
+		b.WriteString(textHighStyle.Render(strings.Join(m.existingCategories, ", ")))
+		b.WriteRune('\n')
+	}
+
+	b.WriteString(textLowStyle.Render("your til will be saved to "))
+	b.WriteString(textHighStyle.Render(m.generateFilename()))
+}
+
+func (m Model) generateFilename() string {
 	filename := fmt.Sprintf("%s%s%s.md", formatDirectory(m.inputs[2].Value()), today, formatTitle(m.inputs[0].Value()))
-	b.WriteString(cursorModeHelpStyle.Render(filename))
+	return filename
 }
 
 func (m Model) renderButtons(b *strings.Builder) {

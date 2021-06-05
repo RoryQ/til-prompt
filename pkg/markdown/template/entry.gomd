@@ -1,0 +1,10 @@
+{{- /*gotype:github.com/roryq/til-prompt/pkg/markdown.Entry*/ -}}
+# {{.Title}}
+
+{{.Body}}
+
+---
+Date: {{.DateString}}
+{{if .Category}}
+Category: {{.Category}}
+{{end}}

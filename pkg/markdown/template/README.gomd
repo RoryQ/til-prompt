@@ -1,0 +1,10 @@
+{{- /*gotype:github.com/roryq/til-prompt/pkg/markdown.ReadmeContents*/ -}}
+# Today I Learned
+
+A collection of tips, code snippets, concise explainers for things I learned from day to day.
+
+_There are a total of {{.TotalCount}} TILs so far..._
+
+---
+
+{{RenderCategoryAndEntryLinks .}}

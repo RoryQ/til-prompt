@@ -64,3 +64,15 @@ func getDataPath(defaultPath string) string {
 	}
 	return defaultPath
 }
+
+func (c Config) ListCategoryDirectories() []string {
+	dirEntries, _ := os.ReadDir(c.SaveDirectory)
+	var categories []string
+	for _, e := range dirEntries {
+		if e.IsDir() {
+			categories = append(categories, e.Name())
+		}
+	}
+
+	return categories
+}
