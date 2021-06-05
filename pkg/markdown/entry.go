@@ -56,17 +56,12 @@ func (e Entry) Render() (string, error) {
 }
 
 func (e Entry) UpdateReadme(saveDirectory string) error {
-	readme, err := ioutil.ReadFile(path.Join(saveDirectory, "README.gomd"))
-	if os.IsNotExist(err) {
-		readme, err = fs.ReadFile(templatesFS, "template/README.gomd")
-		if err != nil {
-			return err
-		}
+	readme, err := RenderReadme(saveDirectory)
+	if err != nil {
+		return err
 	}
 
-	fmt.Println(string(readme))
-
-	return nil
+	return ioutil.WriteFile(path.Join(saveDirectory, "README.md"), []byte(readme), 0644)
 }
 
 type ReadmeContents struct {
@@ -76,24 +71,39 @@ type ReadmeContents struct {
 }
 
 func RenderReadme(saveDirectory string) (string, error) {
-	return renderReadme(os.DirFS(saveDirectory))
+	contents, err := generateContents(os.DirFS(saveDirectory))
+	if err != nil {
+		return "", err
+	}
+
+	b, err := templatesFS.ReadFile("template/README.gomd")
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	err = template.Must(template.New("").Funcs(template.FuncMap{"RenderLinks": renderLinks}).
+		Parse(string(b))).
+		Execute(&buf, contents)
+
+	return buf.String(), err
 }
 
-func renderReadme(fileSystem fs.FS) (string, error) {
+func generateContents(fileSystem fs.FS) (ReadmeContents, error) {
 	contents := ReadmeContents{
 		Categories: []string{},
 		Entries:    make(map[string][]Entry),
 	}
+
 	err := fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() {
-			contents.Categories = append(contents.Categories, d.Name())
+		if d.Name() == "README.md" || strings.HasPrefix(d.Name(), ".") {
 			return nil
 		}
-
-		if d.Name() == "README.md" {
+		if d.IsDir() {
+			contents.Categories = append(contents.Categories, d.Name())
 			return nil
 		}
 
@@ -103,6 +113,7 @@ func renderReadme(fileSystem fs.FS) (string, error) {
 		}
 
 		entry := readEntry(string(bytes))
+		entry.SavePath = path
 		if arr, ok := contents.Entries[entry.Category]; ok {
 			arr = append(arr, entry)
 			contents.Entries[entry.Category] = arr
@@ -115,7 +126,7 @@ func renderReadme(fileSystem fs.FS) (string, error) {
 		return nil
 	})
 
-	return "", err
+	return contents, err
 }
 
 func renderCategoryLinks(contents ReadmeContents) string {
@@ -125,7 +136,7 @@ func renderCategoryLinks(contents ReadmeContents) string {
 	}
 
 	if b.Len() > 0 {
-		return "---\n### Categories\n" + b.String() + "\n"
+		return "---\n### Categories\n\n" + b.String()
 	}
 
 	return ""
@@ -147,19 +158,20 @@ func renderEntryLinks(contents ReadmeContents) string {
 		for _, e := range contents.Entries[cat] {
 			link(b, e.Title, e.SavePath)
 		}
+		b.WriteRune('\n')
 	}
 
 	if b.Len() > 0 {
-		return "---\n\n" + b.String() + "\n"
+		return "---\n\n" + b.String()
 	}
 
 	return ""
 }
 
-func renderCategoryAndEntryLinks(contents ReadmeContents) string {
-	entries := renderEntryLinks(contents)
+func renderLinks(contents ReadmeContents) string {
 	categories := renderCategoryLinks(contents)
-	return strings.Join([]string{entries, categories}, "\n")
+	entries := renderEntryLinks(contents)
+	return strings.Join([]string{categories, entries}, "\n")
 }
 
 var (
@@ -167,7 +179,7 @@ var (
 		`(?sm)^# (?P<title>[^\n]+)\n` +
 			`(?P<body>.*)\n---` +
 			`(\n?)+Date: (?P<date>\d{4}-\d\d-\d\d)(\n?)+` +
-			`(Category: (?P<category>.*))?`)
+			`(Category: (?P<category>[^\n]+))?`)
 )
 
 func readEntry(s string) (entry Entry) {

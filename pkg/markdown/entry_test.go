@@ -23,7 +23,7 @@ Date: 2021-06-05
 
 		// category is optional
 		assert.Equal(t, "", entry.Category)
-		entry = readEntry(md + "\nCategory: gcp")
+		entry = readEntry(md + "\nCategory: gcp\n")
 		assert.Equal(t, "gcp", entry.Category)
 	})
 }
@@ -39,7 +39,9 @@ func Test_renderCategoryLinks(t *testing.T) {
 			Categories: []string{"gcp", "golang"},
 		}
 		s := renderCategoryLinks(contents)
-		expected := `### Categories
+		expected := `---
+### Categories
+
 * [gcp](gcp)
 * [golang](golang)
 `
@@ -61,7 +63,6 @@ func Test_renderEntryLinks(t *testing.T) {
 
 * [Title](2021-06-05-title.md)
 * [Title](2021-06-05-title.md)
-
 `
 		assert.Equal(t, expected, s)
 	})

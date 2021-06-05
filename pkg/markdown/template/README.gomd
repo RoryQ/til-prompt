@@ -5,6 +5,4 @@ A collection of tips, code snippets, concise explainers for things I learned fro
 
 _There are a total of {{.TotalCount}} TILs so far..._
 
----
-
-{{RenderCategoryAndEntryLinks .}}
+{{RenderLinks .}}

@@ -103,7 +103,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Did the user press enter while the submit button was focused?
 			// If so, exit.
 			if s == "enter" && m.saveFocused() {
-				_ = markdown.Entry{
+				e := markdown.Entry{
 					SavePath:   m.generateFilename(),
 					Title:      m.inputs[titleInput].Value(),
 					Body:       m.inputs[bodyInput].Value(),
@@ -111,7 +111,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					DateString: today,
 				}
 
-				markdown.RenderReadme(m.config.SaveDirectory)
+				e.Save(m.config.SaveDirectory)
+				e.UpdateReadme(m.config.SaveDirectory)
 
 				return m, tea.Quit
 			}
