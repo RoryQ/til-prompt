@@ -208,10 +208,22 @@ func (m Model) renderFooter(b *strings.Builder) {
 		b.WriteRune('\n')
 	}
 
-	b.WriteString(textLowStyle.Render("your til will be saved to "))
-	b.WriteString(textHighStyle.Render(m.generateFilename()))
+	if m.anyTextWritten() {
+		b.WriteString(textLowStyle.Render("your til will be saved to "))
+		b.WriteString(textHighStyle.Render(m.generateFilename()))
+	} else {
+		b.WriteString(textLowStyle.Render("nothing to save"))
+	}
 }
 
+func (m Model) anyTextWritten() bool {
+	for i := range m.inputs {
+		if m.inputs[i].Value() != "" {
+			return true
+		}
+	}
+	return false
+}
 func (m Model) generateFilename() string {
 	filename := fmt.Sprintf("%s%s%s.md", formatDirectory(m.inputs[2].Value()), today, formatTitle(m.inputs[0].Value()))
 	return filename
