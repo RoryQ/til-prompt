@@ -19,10 +19,11 @@ func main() {
 		panic(err)
 	}
 
-	re := regexp.MustCompile("```shell\\n[^`]+```")
+	format := "<!--usage-shell-->\n```\n%s```"
+	re := regexp.MustCompile(fmt.Sprintf(format, "[^`]+"))
 	matches := re.FindStringSubmatch(string(readme))
 	replaced := strings.ReplaceAll(string(readme), matches[0],
-		fmt.Sprintf("```shell\n%s\n```", helpOutput))
+		fmt.Sprintf(format, helpOutput))
 
 	ioutil.WriteFile("README.md", []byte(replaced), 0644)
 }

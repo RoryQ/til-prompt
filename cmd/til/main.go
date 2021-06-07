@@ -19,7 +19,7 @@ var (
 )
 
 var CLI struct {
-	Config struct{} `cmd:"config" help:"Displays the current configuration."`
+	Config struct{} `cmd help:"Displays the current configuration."`
 }
 
 func main() {
@@ -29,7 +29,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	ktx := kong.Parse(&CLI, kong.Name("til"))
+	ktx := kong.Parse(&CLI,
+		kong.Name("til"),
+		kong.Description("An interactive prompt for managing TIL entries."))
+
 	switch ktx.Command() {
 	case "config":
 		fmt.Println(config.Sprint())
