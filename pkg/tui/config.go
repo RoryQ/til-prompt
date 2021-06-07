@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
 
 	"gopkg.in/yaml.v2"
 
@@ -52,6 +55,16 @@ func LoadConfig(scope *gap.Scope) (config Config, err error) {
 
 	err = yaml.Unmarshal(bytes, &config)
 	return config, err
+}
+
+func (c Config) Sprint() string {
+	b := &strings.Builder{}
+	headStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575"))
+	bodyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+
+	b.WriteString(headStyle.Render("SaveDirectory: "))
+	b.WriteString(bodyStyle.Render(c.SaveDirectory))
+	return b.String()
 }
 
 func getDataPath(defaultPath string) string {

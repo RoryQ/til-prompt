@@ -4,9 +4,11 @@ TIL-Prompt is an interactive terminal prompt for creating and managing a collect
 
 
 # Installation
-To install from source using golang 1.16
+To install from source using golang 2.16
 
-`go install github.com/roryq/til-prompt/cmd/til@v0.1.0`
+```
+go install github.com/roryq/til-prompt/cmd/til@vlatest
+```
 
 # Usage
 
@@ -14,6 +16,20 @@ To install from source using golang 1.16
 
 Follow the prompts to save a new TIL entry.
 A README.md is regenerated after each save.
+
+```shell
+Usage: til <command>
+
+Flags:
+  -h, --help    Show context-sensitive help.
+
+Commands:
+  config
+    Displays the current configuration.
+
+Run "til <command> --help" for more information on a command.
+
+```
 
 # License
 [MIT](LICENSE)
