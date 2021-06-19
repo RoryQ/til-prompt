@@ -27,8 +27,14 @@ Flags:
   -h, --help    Show context-sensitive help.
 
 Commands:
-  config
-    Displays the current configuration.
+  new
+    Create a new TIL entry. (default command)
+
+  config list
+    List the current configuration. (default sub-command)
+
+  config edit
+    Open the config in your configured $EDITOR
 
 Run "til <command> --help" for more information on a command.
 ```

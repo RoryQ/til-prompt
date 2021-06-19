@@ -1,12 +1,15 @@
-package tui
+package core
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/roryq/til-prompt/pkg/exec"
 
 	"github.com/charmbracelet/lipgloss"
 
@@ -24,28 +27,37 @@ func defaultConfig(scope *gap.Scope) Config {
 
 type Config struct {
 	SaveDirectory string
+	Editor        string
 }
 
-func LoadConfig(scope *gap.Scope) (config Config, err error) {
+func ensureConfigPath(scope *gap.Scope) (string, error) {
 	scope.DataDirs()
 	configPath, err := scope.ConfigPath("config.yaml")
 	if err != nil {
-		return config, err
+		return "", err
 	}
-
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		config = defaultConfig(scope)
+		config := defaultConfig(scope)
 		config.SaveDirectory = getDataPath(config.SaveDirectory)
 		bytes, err := yaml.Marshal(config)
 		if err != nil {
-			return config, err
+			return "", err
 		}
 		if err := os.MkdirAll(filepath.Dir(configPath), os.ModePerm); err != nil {
-			return config, err
+			return "", err
 		}
 		if err := ioutil.WriteFile(configPath, bytes, 0644); err != nil {
-			return config, err
+			return "", err
 		}
+	}
+
+	return configPath, nil
+}
+
+func LoadConfig(scope *gap.Scope) (config Config, err error) {
+	configPath, err := ensureConfigPath(scope)
+	if err != nil {
+		return config, err
 	}
 
 	bytes, err := ioutil.ReadFile(configPath)
@@ -57,7 +69,40 @@ func LoadConfig(scope *gap.Scope) (config Config, err error) {
 	return config, err
 }
 
-func (c Config) Sprint() string {
+func coalesceString(stringSlice ...string) string {
+	for i := range stringSlice {
+		if stringSlice[i] != "" {
+			return stringSlice[i]
+		}
+	}
+
+	return ""
+}
+
+func EditConfig(scope *gap.Scope) error {
+	configPath, err := ensureConfigPath(scope)
+	if err != nil {
+		return err
+	}
+
+	config, err := LoadConfig(scope)
+	if err != nil {
+		return err
+	}
+
+	editor := coalesceString(config.Editor, os.Getenv("VISUAL"), os.Getenv("EDITOR"))
+	if editor == "" {
+		return errors.New("no editor found: please configure an editor in the config, or set your $EDITOR env")
+	}
+
+	cmd := exec.CommandFromString(fmt.Sprintf("%s %s </dev/tty", editor, configPath))
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func (c Config) Formatted() string {
 	b := &strings.Builder{}
 	headStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575"))
 	bodyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
