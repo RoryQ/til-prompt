@@ -178,7 +178,7 @@ func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
 }
 
 func (m Model) View() string {
-	b := &strings.Builder{}
+	b := new(strings.Builder)
 	m.renderInputs(b)
 	m.renderButtons(b)
 	m.renderFooter(b)

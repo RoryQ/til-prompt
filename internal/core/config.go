@@ -2,14 +2,13 @@ package core
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/roryq/til-prompt/pkg/exec"
+	"github.com/roryq/til-prompt/pkg/editor"
 
 	"github.com/charmbracelet/lipgloss"
 
@@ -28,6 +27,10 @@ func defaultConfig(scope *gap.Scope) Config {
 type Config struct {
 	SaveDirectory string
 	Editor        string
+}
+
+func (c Config) GetEditor() string {
+	return c.Editor
 }
 
 func ensureConfigPath(scope *gap.Scope) (string, error) {
@@ -69,16 +72,6 @@ func LoadConfig(scope *gap.Scope) (config Config, err error) {
 	return config, err
 }
 
-func coalesceString(stringSlice ...string) string {
-	for i := range stringSlice {
-		if stringSlice[i] != "" {
-			return stringSlice[i]
-		}
-	}
-
-	return ""
-}
-
 func EditConfig(scope *gap.Scope) error {
 	configPath, err := ensureConfigPath(scope)
 	if err != nil {
@@ -90,16 +83,7 @@ func EditConfig(scope *gap.Scope) error {
 		return err
 	}
 
-	editor := coalesceString(config.Editor, os.Getenv("VISUAL"), os.Getenv("EDITOR"))
-	if editor == "" {
-		return errors.New("no editor found: please configure an editor in the config, or set your $EDITOR env")
-	}
-
-	cmd := exec.CommandFromString(fmt.Sprintf("%s %s </dev/tty", editor, configPath))
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return editor.Launch(config, configPath)
 }
 
 func (c Config) Formatted() string {
