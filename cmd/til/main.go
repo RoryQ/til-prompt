@@ -6,8 +6,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/roryq/til-prompt/internal/edit"
+	"github.com/roryq/til-prompt/pkg/editor"
+	"github.com/roryq/til-prompt/pkg/viewer"
+
+	"github.com/roryq/til-prompt/internal/manager"
 
 	"github.com/alecthomas/kong"
 	tea "github.com/charmbracelet/bubbletea"
@@ -29,6 +33,9 @@ var cli struct {
 	Edit struct {
 		Keyword string `arg optional help:"optional keyword to search for."`
 	} `cmd help:"Open today's TIL in your configured editor. You can optionally pass a keyword to search for."`
+	View struct {
+		Keyword string `arg optional help:"optional keyword to search for."`
+	} `cmd help:"Display a styled view of today's TIL. You can optionally pass a keyword to search for."`
 }
 
 func main() {
@@ -42,7 +49,7 @@ func main() {
 		kong.Name("til"),
 		kong.Description("An interactive prompt for managing TIL entries."))
 
-	switch ktx.Command() {
+	switch c := ktx.Command(); c {
 	case "config list":
 		fmt.Println(config.Formatted())
 	case "config edit":
@@ -51,10 +58,29 @@ func main() {
 			fmt.Printf("could not start program: %s\n", err)
 			os.Exit(1)
 		}
-	case "edit", "edit <keyword>":
-		if err := tea.NewProgram(edit.NewUI(config, cli.Edit.Keyword)).Start(); err != nil {
+	case "edit", "edit <keyword>", "view", "view <keyword>":
+		selection := make(chan manager.Selection, 1)
+		program := new(tea.Program)
+		if strings.HasPrefix(c, "edit") {
+			program = tea.NewProgram(manager.NewUI(config, manager.Edit, selection, cli.Edit.Keyword))
+		} else {
+			program = tea.NewProgram(manager.NewUI(config, manager.View, selection, cli.View.Keyword))
+		}
+
+		if err := program.Start(); err != nil {
 			fmt.Printf("could not start editor: %s\n", err)
 			os.Exit(1)
+		}
+
+		select {
+		case c := <-selection:
+			if c.Mode == manager.Edit {
+				editor.Launch(config, c.Path)
+			} else {
+				viewer.Launch(c.Path)
+			}
+		default:
+			os.Exit(0)
 		}
 	default:
 		if err := tea.NewProgram(core.NewUI(config)).Start(); err != nil {

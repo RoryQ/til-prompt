@@ -40,6 +40,10 @@ Commands:
     Open today's TIL in your configured editor. You can optionally pass a
     keyword to search for.
 
+  view [<keyword>]
+    Display a styled view of today's TIL. You can optionally pass a keyword to
+    search for.
+
 Run "til <command> --help" for more information on a command.
 ```
 
